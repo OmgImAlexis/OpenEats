@@ -1,29 +1,41 @@
 version: '2'
 services:
-  api:
-    build: api/
-    restart: always
-    volumes:
-      - static-files:/code/static-files
-      - site-media:/code/site-media
-    depends_on:
-      - db
-    ports:
-      - "8000:8000"
-  node:
-    build: frontend/
-    volumes:
-      - node_modules:/code/node_modules
-    depends_on:
-      - api
-    ports:
-      - "8080:8080"
-  db:
-    image: mariadb
-    volumes:
-      - database:/var/lib/mysql
+    api:
+        build: ./api
+        image: openeats/api
+        restart: always
+        volumes:
+            - static-files:/code/static-files
+            - site-media:/code/site-media
+        depends_on:
+            - db
+        # Uncomment the ports below to allow api to be brought up by itself
+        # ports:
+        #     - "80:80"
+        env_file:
+            env_prod.list
+    frontend:
+        build: ./frontend
+        image: openeats/frontend
+        depends_on:
+            - api
+        ports:
+            - "80:80"
+        links:
+            - api
+    db:
+        image: mariadb
+        volumes:
+            - database:/var/lib/mysql
+        environment:
+            - "MYSQL_DATABASE=my_db_name"
+            - "MYSQL_USER=my_db_user"
+            - "MYSQL_PASSWORD=my_db_user_passwd"
+            - "MYSQL_ROOT_PASSWORD=my_db_root_passwd"
+        ports:
+            - "3306:3306"
 volumes:
-  database:
-  node_modules:
-  static-files:
-  site-media:
+    database:
+    node_modules:
+    static-files:
+    site-media:

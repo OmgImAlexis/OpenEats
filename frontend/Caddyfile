@@ -1,0 +1,19 @@
+0.0.0.0:80 {
+    root /var/www/html
+    tls off
+    gzip
+    log stdout
+    errors stdout
+    rewrite {
+        if {file} not favicon.ico
+        if {file} not favicon.png
+        to {path} {path}/ /index.html
+    }
+    proxy /api api:80 {
+        transparent
+    }
+    proxy /admin api:80 {
+        transparent
+    }
+    cors /api
+}

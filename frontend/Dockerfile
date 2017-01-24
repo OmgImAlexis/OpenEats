@@ -1,9 +1,33 @@
-FROM node:argon
+FROM mhart/alpine-node:latest
+MAINTAINER Alexis Tyler <xo@wvvw.me>
 
-# Create app directory
-RUN mkdir /code
-WORKDIR /code
+RUN npm install --global yarn
 
-# Install app dependencies
-ADD . /code/
-RUN npm install
+RUN apk --no-cache add tini git openssh-client \
+    && apk --no-cache add --virtual devs tar curl
+
+# Install Caddy Server, and All Middleware
+RUN curl "https://caddyserver.com/download/build?os=linux&arch=amd64&features=DNS%2Cawslambda%2Ccors%2Cexpires%2Cfilemanager%2Cgit%2Chugo%2Cipfilter%2Cjsonp%2Cjwt%2Clocale%2Cmailout%2Cminify%2Cmultipass%2Cprometheus%2Cratelimit%2Crealip%2Csearch%2Cupload%2Ccloudflare%2Cdigitalocean%2Cdnsimple%2Cdyn%2Cgandi%2Cgooglecloud%2Clinode%2Cnamecheap%2Crfc2136%2Croute53%2Cvultr" \
+    | tar --no-same-owner -C /usr/bin/ -xz caddy
+
+# Remove build devs
+RUN apk del devs
+
+WORKDIR /src
+ADD . .
+
+RUN yarn install
+RUN yarn build
+
+# Copy over a Caddyfile and SPA files
+COPY Caddyfile /etc/Caddyfile
+COPY public /var/www/html/
+
+# Cleanup yarn build files
+RUN rm -rf /src
+
+EXPOSE 80
+
+ENTRYPOINT ["/sbin/tini"]
+
+CMD ["caddy", "-quic", "--conf", "/etc/Caddyfile"]
